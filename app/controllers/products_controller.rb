@@ -19,17 +19,16 @@ class ProductsController < ApplicationController
       return
     end
 
-    # date = 
+    time = Time.now
     brand_col, code_col, stock_col, cost_col, name_col = search_column(table)
     save_or_update_product(table, brand_col, code_col, stock_col, cost_col, name_col)
-
-    # delete_old_product(params[:file].original_filename)
+    delete_old_product(params[:file].original_filename, time)
     @products = Product.all
     render "index"
   end
 
-  def delete_old_product(original_filename, date)
-
+  def delete_old_product(price_list, time)
+    Product.where(price_list: price_list).where("updated_at < ?", time).destroy_all
   end
 
   def search_column(table)
@@ -51,8 +50,8 @@ class ProductsController < ApplicationController
 
   def save_or_update_product(table, brand_col, code_col, stock_col, cost_col, name_col)
     table.drop(1).each do |row|
-      if (row[brand_col].blank? || row[brand_col].blank? ||
-            row[brand_col].blank? || row[brand_col].blank?)
+      if (row[brand_col].blank? || row[code_col].blank? ||
+            row[stock_col].blank? || row[cost_col].blank?)
         next
       end
       product = Product.find_by(price_list: params[:file].original_filename, brand: row[brand_col], code: row[code_col])
@@ -67,6 +66,7 @@ class ProductsController < ApplicationController
           product.stock = row[code_col]
           product.cost = row[cost_col]
           product.stock = row[name_col]
+          product.updated_at = Time.now
       end
       begin
         product.save

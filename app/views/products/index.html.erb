@@ -11,6 +11,7 @@
 <table>
   <thead>
     <tr>
+      <th>ID</th>
       <th>Price list</th>
       <th>Brand</th>
       <th>Code</th>
@@ -25,6 +26,7 @@
   <tbody>
     <% @products.each do |product| %>
       <tr>
+        <td><%= product.id %></td>
         <td><%= product.price_list %></td>
         <td><%= product.brand %></td>
         <td><%= product.code %></td>
