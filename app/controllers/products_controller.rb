@@ -1,82 +1,19 @@
 class ProductsController < ApplicationController
   require 'csv'
-  def index
-    @products = Product.all
-  end
 
-  $brand_names = ['Производитель', 'Наименование']
-  $code_names = ['Артикул', 'Номер']
-  $stock_names = ['Количество', 'Кол-во']
-  $cost_names = ['Цена']
-  $name_names = ['Наименование', 'НаименованиеТовара']
+  def index
+    @products = Product.all.order(:id)
+  end
 
   def upload
-    begin 
-      file = File.open(params[:file])
-      table = CSV.parse(file, liberal_parsing: true)
-    rescue
-      render plain: "Произошла ошибка, попробуйте выбрать другой файл (.csv)"
-      return
-    end
-
-    time = Time.now
-    brand_col, code_col, stock_col, cost_col, name_col = search_column(table)
-    save_or_update_product(table, brand_col, code_col, stock_col, cost_col, name_col)
-    delete_old_product(params[:file].original_filename, time)
-    @products = Product.all
-    render "index"
-  end
-
-  def delete_old_product(price_list, time)
-    Product.where(price_list: price_list).where("updated_at < ?", time).destroy_all
-  end
-
-  def search_column(table)
-    brand_col, code_col, stock_col, cost_col, name_col = -1
-    table[0].each_with_index do |val, index|
-      brand_col = $brand_names.include?(val) ? index : brand_col
-      code_col = $code_names.include?(val) ? index : code_col
-      stock_col = $stock_names.include?(val) ? index : stock_col
-      cost_col = $cost_names.include?(val) ? index : cost_col
-      name_col = $name_names.include?(val) ? index : name_col
-    end
-    if ((-1 == brand_col) || (-1 == code_col) ||
-          (-1 == stock_col) || (-1 == cost_col))
-      render plain: "Не все обязательные поля найдены (brand, code, stok, cost)"
-      return
-    end
-    return brand_col, code_col, stock_col, cost_col, name_col
-  end
-
-  def save_or_update_product(table, brand_col, code_col, stock_col, cost_col, name_col)
-    table.drop(1).each do |row|
-      if (row[brand_col].blank? || row[code_col].blank? ||
-            row[stock_col].blank? || row[cost_col].blank?)
-        next
-      end
-      product = Product.find_by(price_list: params[:file].original_filename, brand: row[brand_col], code: row[code_col])
-      if (product.blank?)
-        product = Product.new(price_list: params[:file].original_filename,
-                              brand:      row[brand_col],
-                              code:       row[code_col],
-                              stock:      row[stock_col],
-                              cost:       row[cost_col],
-                              name:       row[name_col])
-      else
-          product.stock = row[code_col]
-          product.cost = row[cost_col]
-          product.stock = row[name_col]
-          product.updated_at = Time.now
-      end
-      begin
-        product.save
-      rescue
-        puts "some text for logger"
-      end
+    rezult = ProductUpload.upload(params[:file])
+    if ('OK' == rezult)
+      redirect_to action: "index"
+    else
+      render plain: rezult
     end
   end
 end
-
 
     # .force_encoding("ISO-8859-1").encode("Windows-1251")
      # rescue
