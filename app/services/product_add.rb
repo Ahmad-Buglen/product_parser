@@ -1,7 +1,7 @@
 class ProductAdd
   def self.add(new_product)
     if (new_product.price_list.blank? || new_product.brand.blank? || new_product.cost.blank?
-      new_product.code.blank? || new_product.stock.blank?)
+          new_product.stock.blank? || new_product.code.blank? )
       return
     end
     product = Product.where(price_list: new_product.price_list).where('lower(brand) = ?', 
@@ -9,13 +9,17 @@ class ProductAdd
     if (product.blank?)
       product = Product.new(new_product.attributes)
     else
-      product.stock = new_product.code
+      product.code = new_product.code
+      product.brand = new_product.brand
+      product.stock = new_product.stock
       product.cost = new_product.cost
-      product.stock = new_product.name
+      product.name = new_product.name
       product.updated_at = Time.now
     end
     begin
-      product.save
+      if product.valid?
+        product.save!
+      end
     rescue
       puts "some text for logger"
     end

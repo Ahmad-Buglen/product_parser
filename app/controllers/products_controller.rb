@@ -1,5 +1,5 @@
 class ProductsController < ApplicationController
-  require 'csv'
+  
 
   def index
     @products = Product.all.order(:id)
