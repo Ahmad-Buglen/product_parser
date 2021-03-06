@@ -1,13 +1,40 @@
 class ProductUpload
   require 'csv'
 
+  require 'charlock_holmes'
+
+  
   def self.upload(file_name)
     # begin 
-      
-      first_line = File.open(file_name) {|f| f.readline}
-      header = CSV.parse(first_line,  {:col_sep =>";", liberal_parsing: true})
+      # first_line = File.open(file_name) {|f| f.readline}
 
-      # puts header.inspect
+
+      content = File.read(file_name)
+      detection = CharlockHolmes::EncodingDetector.detect(content)
+      utf8_encoded_content = CharlockHolmes::Converter.convert content, detection[:encoding],  'UTF-8'
+      # encoded_content = content.encode("ISO-8859-1", 'UTF-8')
+      # options = {liberal_parsing: true, external_encoding: 'UTF-8'}
+      # Encoding.name_list.each do |encode|
+      #   if first_line.force_encoding(encode).valid_encoding?
+      #     options[:internal_encoding] = encode
+      #     break
+      #   end
+      # end
+      # , "r:ISO-8859-1"
+      # force_encoding("ISO-8859-1")
+      # return options[:internal_encoding].to_s
+      # quote_chars = %w(" | ~ ^ & *) 
+      # begin
+      
+      # if first_line.count(';') > first_line.count(',')
+      #   options[:col_sep] = ';'
+      # end
+      # if first_line.count('"') > 7
+      #   options[:quote_char] = '"'
+      # end
+      # header = CSV.parse(first_line, options)
+      return utf8_encoded_content
+
       brand_col = ProductUpload.search_column(header[0], Product::BRAND_NAMES)
       code_col = ProductUpload.search_column(header[0], Product::CODE_NAMES)
       stock_col = ProductUpload.search_column(header[0], Product::STOCK_NAMES)
@@ -15,19 +42,20 @@ class ProductUpload
       name_col = ProductUpload.search_column(header[0], Product::NAME_NAMES)
       if ((-1 == brand_col) || (-1 == code_col) ||
             (-1 == stock_col) || (-1 == cost_col))
-
         return "Не все обязательные поля найдены (brand, code, stok, cost) 
               #{header[0].inspect}
               brand_col = #{brand_col}, code_col = #{code_col}, stock_col = #{stock_col}, cost_col = #{cost_col}" 
       end
-    return "#{header[0].inspect} 
-     brand_col = #{brand_col}, code_col = #{code_col}, 
-     stock_col = #{stock_col}, cost_col = #{cost_col}
-     #{header[0][0].tr('"', '')}"
+    # return "#{header[0].inspect} 
+    #  brand_col = #{brand_col}, code_col = #{code_col}, 
+    #  stock_col = #{stock_col}, cost_col = #{cost_col}
+    #  #{header[0][0].tr('"', '')}"
     price_list = file_name.original_filename
     time = Time.now
     file = File.open(file_name)
-    table = CSV.parse(file, {quote_char: '"', :col_sep =>";", liberal_parsing: true} )
+    table = CSV.parse(file, options)
+
+    # return table.force_encoding(Encoding::UTF_8)
     table.drop(1).each do |row|
       # next if (i == 0)
       product = Product.new(price_list: price_list,
@@ -55,13 +83,22 @@ class ProductUpload
   def self.search_column(header, names)
     puts names
     header.each_with_index do |val, index|
-      puts "debag val = #{transliterate(val.tr('"', ''))}, index = #{index}"
-      if names.include?(transliterate(val.tr('"', '')))
-        return index
+      # puts "debag val = #{transliterate(val.tr('"', ''))}, index = #{index}"
+      names.each do |name|
+        if val.include? name
+          return index
+        end
       end
     end
     -1
   end 
+
+  def self.detect_charset(file_path)
+    `file --mime #{file_path}`.strip.split('charset=').last
+  rescue #=> e 
+    # Rails.logger.warn "Unable to determine charset of #{file_path}"
+    # Rails.logger.warn "Error: #{e.message}"
+  end
 
   # def self.search_column(header)
   #   brand_col = -1
