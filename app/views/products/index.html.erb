@@ -1,5 +1,9 @@
 <p id="notice"><%= notice %></p>
 
+<% flash.each do |name, msg| -%>
+  <%= content_tag :div, msg, class: name %>
+<% end -%>
+
 <%= form_with url: "product/upload", multipart: true do |f| %>
   <%= f.label  "Укажите файл для загрузки (.csv)" %>
   <%= f.file_field :file %>
